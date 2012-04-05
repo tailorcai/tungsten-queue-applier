@@ -1,0 +1,37 @@
+#prefetch 
+
+get Tungsten Replicator 2.0.4 from: http://code.google.com/p/tungsten-replicator/
+
+get Kestrel from: https://github.com/robey/kestrel
+
+
+#compile
+
+mvn install:install-file -DgroupId=com.continuent.tungsten.replicator -DartifactId=tungsten-replicator -Dversion=2.0.4 -Dpackaging=jar -Dfile=/path/to/tungsten-replicator/lib/tungsten_replicator.jar
+
+mvn install
+
+# get your compiled version out from your maven's repository
+cp ~/.m2/repository/com/ganji/ganji_tungsten/1.1-SNAPSHOT/ganji_tungsten-1.1-SNAPSHOT.jar /path/to/tungsten-replicator/lib
+
+# get required library
+cp ~/.m2/repository/net/spy/memcached/spymemcached/2.7.3/spymemcached-2.7.3.jar  /path/to/tungsten-replicator/lib
+
+#
+install tungstren replicator with a master only install
+
+#!/bin/sh 
+TUNGSTEN_HOME=$HOME/replication/master 
+MASTER=localhost 
+/opt/tungsten-replicator-2.0.4/tools/tungsten-installer \ 
+    --master-slave \ 
+    --master-host=$MASTER \ 
+    --datasource-user=root \ 
+    --datasource-password=root \ 
+    --service-name=mysql2queue \ 
+    --home-directory=$TUNGSTEN_HOME \ 
+    --cluster-hosts=$MASTER \ 
+    --start-and-report \ 
+    --rmi-port=12000
+
+#  
