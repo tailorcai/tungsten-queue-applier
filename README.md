@@ -1,9 +1,9 @@
 Prefetch
 --------
 
-get Tungsten Replicator 2.0.4 from: http://code.google.com/p/tungsten-replicator/
+get Tungsten Replicator 2.0.4 from: [http://code.google.com/p/tungsten-replicator/](http://code.google.com/p/tungsten-replicator/)
 
-get Kestrel from: https://github.com/robey/kestrel
+get Kestrel from: [https://github.com/robey/kestrel](https://github.com/robey/kestrel)
 
 
 Build
@@ -14,6 +14,7 @@ Install tungsten-replicator.jar into repository and compile, and the required li
     $ mvn install
 
 Get your compiled version out from your maven's repository
+
     $ cp ~/.m2/repository/com/ganji/ganji_tungsten/1.1-SNAPSHOT/ganji_tungsten-1.1-SNAPSHOT.jar /path/to/tungsten-replicator/lib
     $ cp ~/.m2/repository/net/spy/memcached/spymemcached/2.7.3/spymemcached-2.7.3.jar  /path/to/tungsten-replicator/lib
 
@@ -33,14 +34,14 @@ Install tungstren replicator with a master only install. remember to replace the
     #!/bin/sh 
     TUNGSTEN_HOME=$HOME/replication/master 
     MASTER=localhost 
-    to/path/tungsten-replicator-2.0.4/tools/tungsten-installer \ 
-        --master-slave \ 
-        --master-host=$MASTER \ 
-        --datasource-user=root \ 
-        --datasource-password=root \ 
-        --service-name=mysql2queue \ 
-        --home-directory=$TUNGSTEN_HOME \ 
-        --cluster-hosts=$MASTER \ 
+    to/path/tungsten-replicator-2.0.4/tools/tungsten-installer \\ 
+        --master-slave \\
+        --master-host=$MASTER \\
+        --datasource-user=root \\
+        --datasource-password=root \\
+        --service-name=mysql2queue \\
+        --home-directory=$TUNGSTEN_HOME \\
+        --cluster-hosts=$MASTER \\
         --start-and-report 
 
 
@@ -81,6 +82,7 @@ Define new mcqueue applier by putting the following lines at the bottom of APPLI
 
 
 Change mysql extractor from relay log to binlog
+
 	change:
 	replicator.extractor.dbms.binlog_dir=/var/log/mysql
 	replicator.extractor.dbms.useRelayLogs=true
