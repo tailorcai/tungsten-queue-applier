@@ -34,7 +34,7 @@ Install tungstren replicator with a master only install. remember to replace the
     #!/bin/sh 
     TUNGSTEN_HOME=$HOME/replication/master 
     MASTER=localhost 
-    to/path/tungsten-replicator-2.0.4/tools/tungsten-installer \\ 
+    to/path/tungsten-replicator-2.0.4/tools/tungsten-installer \\
         --master-slave \\
         --master-host=$MASTER \\
         --datasource-user=root \\
