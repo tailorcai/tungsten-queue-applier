@@ -10,14 +10,14 @@ Build
 -----
 Install tungsten-replicator.jar into repository and compile, and the required libs will be download by itself.
 
-    $ mvn install:install-file -DgroupId=com.continuent.tungsten.replicator -DartifactId=tungsten-replicator -Dversion=2.0.4 -Dpackaging=jar -Dfile=/path/to/tungsten-replicator/lib/tungsten_replicator.jar
+    $ mvn install:install-file -DgroupId=com.continuent.tungsten.replicator -DartifactId=tungsten-replicator -Dversion=2.0.5 -Dpackaging=jar -Dfile=/path/to/tungsten-replicator/lib/tungsten_replicator.jar
     $ mvn install
 
 Get your compiled version out from your maven's repository
 
-    $ cp ~/.m2/repository/com/ganji/ganji_tungsten/1.1-SNAPSHOT/ganji_tungsten-1.1-SNAPSHOT.jar /path/to/tungsten-replicator/lib
-    $ cp ~/.m2/repository/net/spy/memcached/spymemcached/2.7.3/spymemcached-2.7.3.jar  /path/to/tungsten-replicator/lib
+    $ mvn dependency:copy-dependencies
 
+This will copy all the jars need to be deployed to target/dependency directory. copy to tungsten-replicator/lib.
 
 Setup MySQL
 -----------
