@@ -35,6 +35,7 @@ import net.spy.memcached.AddrUtil;
 import net.spy.memcached.ConnectionFactoryBuilder;
 import net.spy.memcached.DefaultConnectionFactory;
 import net.spy.memcached.MemcachedClient;
+import net.spy.memcached.transcoders.SerializingTranscoder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -251,10 +252,14 @@ public class GanjiMcQueueApplier extends RowDataApplier
 
 
         try {
+            SerializingTranscoder transcoder = new SerializingTranscoder();
+            transcoder.setCompressionThreshold(1024*1024); // disable compress
+
             mc_conn = new MemcachedClient(
                     new ConnectionFactoryBuilder().
-                                    setOpTimeout(30*1000).
-                            build(),
+                        setOpTimeout(30*1000).
+                        setTranscoder(transcoder).
+                        build(),
                     AddrUtil.getAddresses( queue_addr ));
 
         }
