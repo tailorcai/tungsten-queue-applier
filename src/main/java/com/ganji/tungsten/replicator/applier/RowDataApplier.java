@@ -7,8 +7,7 @@ import java.util.List;
 
 import javax.sql.rowset.serial.SerialException;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
@@ -32,17 +31,17 @@ import com.continuent.tungsten.replicator.plugin.PluginContext;
 
 public abstract class RowDataApplier implements RawApplier {
 
-    private static Logger  logger        = LoggerFactory.getLogger(RowDataApplier.class);
-
-    protected ReplDBMSHeader latestHeader;
-
-    protected static int ACTION_INSERT = 0;
-    protected static int ACTION_UPDATE = 1;
-    protected static int ACTION_DELETE = 2;
-
+	private static Logger  logger        = Logger.getLogger(RowDataApplier.class);
+	
+	protected ReplDBMSHeader latestHeader;
+	
+	protected static int ACTION_INSERT = 0;
+	protected static int ACTION_UPDATE = 1;
+	protected static int ACTION_DELETE = 2;
+	
     /**
      * Applies row updates. Statements are discarded. {@inheritDoc}
-     *
+     * 
      * @see com.continuent.tungsten.replicator.applier.RawApplier#apply(com.continuent.tungsten.replicator.event.DBMSEvent,
      *      com.continuent.tungsten.replicator.event.ReplDBMSHeader, boolean)
      */
@@ -57,16 +56,14 @@ public abstract class RowDataApplier implements RawApplier {
                 && latestHeader.getSeqno() >= header.getSeqno()
                 && ! (event instanceof DBMSEmptyEvent))
         {
-            logger.info("Skipping over previously applied event: seqno={} fragno={}",
-                    header.getSeqno(), header.getFragno());
+            logger.info("Skipping over previously applied event: seqno="
+                    + header.getSeqno() + " fragno=" + header.getFragno());
             return;
         }
         if (logger.isDebugEnabled())
-        {
-            logger.debug("Applying event: seqno={} fragno= {}  commit={}",
-                    new Object[]{header.getSeqno(), header.getFragno(), doCommit});
-        }
-
+            logger.debug("Applying event: seqno=" + header.getSeqno()
+                    + " fragno=" + header.getFragno() + " commit=" + doCommit);
+        
         // Iterate through values inferring the database name.
         for (DBMSData dbmsData : dbmsDataValues)
         {
@@ -83,12 +80,30 @@ public abstract class RowDataApplier implements RawApplier {
                     ActionType action = orc.getAction();
                     String schema = orc.getSchemaName();
                     String table = orc.getTableName();
-
+                    
+//                    if( !filterSchemaTable( schema, table ) ) {
+//                        logger.debug("Processing row update: filtered out=" + action
+//                                + " schema=" + schema + " table=" + table);                    	
+//                    	continue;
+//                    }
+//                    if( exc_matcher != null ) {
+//                        exc_matcher.reset( schema + "." + table );
+//                        if( exc_matcher.matches() ) {
+//        				    continue;
+//        				}
+//                    }
+//                    
+//                    if( inc_matcher != null ) {
+//                        inc_matcher.reset( schema + "." + table );
+//                        if( !inc_matcher.matches() ) {
+//                            continue;
+//                        }
+//                    }
 
                     if (logger.isDebugEnabled())
                     {
-                        logger.debug("Processing row update: action= {} schema={} table={}",
-                                new Object[]{action, schema, table});
+                        logger.debug("Processing row update: action=" + action
+                                + " schema=" + schema + " table=" + table);
                     }
 
                     if (action.equals(ActionType.INSERT))
@@ -109,13 +124,15 @@ public abstract class RowDataApplier implements RawApplier {
                                 String value = ColValue2String(colSpecs.get(i), row.get(i));
                                 doc.put(name, value);
                             }
+                            //insert2Queue( schema, table , "insert", doc );
                             onRowData(schema, table, ACTION_INSERT, doc);
                         }
-
+                           
                     }
                     else if (action.equals(ActionType.UPDATE))
                     {
                         // Fetch key and column names.
+                        //List<ColumnSpec> keySpecs = orc.getKeySpec();
                         List<ColumnSpec> colSpecs = orc.getColumnSpec();
                         ArrayList<ArrayList<OneRowChange.ColumnVal>> keyValues = orc
                                 .getKeyValues();
@@ -127,6 +144,7 @@ public abstract class RowDataApplier implements RawApplier {
                                 || row < keyValues.size(); row++)
                         {
                             JSONObject doc = new JSONObject();
+                            //List<ColumnVal> keyValuesOfRow = keyValues.get(row);
                             List<ColumnVal> colValuesOfRow = columnValues.get(row);
                             for (int i = 0; i < colValuesOfRow.size(); i++)
                             {
@@ -143,6 +161,7 @@ public abstract class RowDataApplier implements RawApplier {
                         List<ColumnSpec> keySpecs = orc.getKeySpec();
                         ArrayList<ArrayList<OneRowChange.ColumnVal>> keyValues = orc
                                 .getKeyValues();
+                        //List<ColumnSpec> colSpecs = orc.getColumnSpec();
                         ArrayList<ArrayList<OneRowChange.ColumnVal>> columnValues = orc
                                 .getColumnValues();
 
@@ -152,7 +171,7 @@ public abstract class RowDataApplier implements RawApplier {
                         {
                             List<ColumnVal> keyValuesOfRow = keyValues.get(row);
                             JSONObject doc = new JSONObject();
-
+                            
                             // Prepare key values query to search for rows.
                             for (int i = 0; i < keyValuesOfRow.size(); i++)
                             {
@@ -165,10 +184,10 @@ public abstract class RowDataApplier implements RawApplier {
                     }
                     else
                     {
-                        logger.warn("Unrecognized action type: {}", action);
+                        logger.warn("Unrecognized action type: " + action);
                         return;
                     }
-
+                    
                 }
             }
             else if (dbmsData instanceof LoadDataFileFragment)
@@ -183,8 +202,8 @@ public abstract class RowDataApplier implements RawApplier {
             }
             else
             {
-                logger.warn("Unsupported DbmsData class: {}",
-                        dbmsData.getClass().getName());
+                logger.warn("Unsupported DbmsData class: "
+                        + dbmsData.getClass().getName());
             }
         }
 
@@ -194,27 +213,25 @@ public abstract class RowDataApplier implements RawApplier {
             commit();
     }
 
-    abstract protected void onRowData(String schema, String table, int aCTIONINSERT,
-                                      JSONObject doc)throws ApplierException;
+	abstract protected void onRowData(String schema, String table, int aCTIONINSERT,
+			JSONObject doc)throws ApplierException;
 
 
-    @Override
-    public void release(PluginContext arg0) throws ReplicatorException,
-            InterruptedException {
-        // TODO Auto-generated method stub
+	@Override
+	public void release(PluginContext arg0) throws ReplicatorException,
+			InterruptedException {
+		// TODO Auto-generated method stub
 
-    }
+	}
+	
+//	abstract protected boolean filterSchemaTable(String schema, String table);
 
     private String ColValue2String(ColumnSpec cspec, ColumnVal cvalue) {
-        String value = null;
+        String value;
         // BUG: if input is null , return null
         if( cvalue.getValue() == null )
-            return null;
-        logger.debug( "type= {}, length={}, value class={}",
-                new Object[]{String.valueOf(cspec.getType()),
-                        String.valueOf(cspec.getLength()),
-                        cvalue.getValue().getClass().toString()});
-
+        	return null;
+        
         if( cspec.getType() == Types.VARCHAR ) {
             value = new String( (byte[]) cvalue.getValue() );
         }
@@ -230,7 +247,7 @@ public abstract class RowDataApplier implements RawApplier {
             }
         }
         else {
-            if( cvalue.getValue() != null )
+            if( cvalue.getValue() != null ) 
                 value = cvalue.getValue().toString();
             else
                 value = null;

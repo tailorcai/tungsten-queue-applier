@@ -35,10 +35,8 @@ import net.spy.memcached.AddrUtil;
 import net.spy.memcached.ConnectionFactoryBuilder;
 import net.spy.memcached.DefaultConnectionFactory;
 import net.spy.memcached.MemcachedClient;
-import net.spy.memcached.transcoders.SerializingTranscoder;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
 
 import com.continuent.tungsten.replicator.ReplicatorException;
@@ -55,14 +53,14 @@ import com.continuent.tungsten.replicator.thl.CommitSeqnoTable;
 /**
  * Implements an applier for MemcacheQueue. The GanjiMcQueueApplier applier This class defines a
  * GanjiMcQueueApplier
- *
+ * 
  * @author <a href="mailto:caifeng@ganji.com">CaiFeng
  *         </a>
  * @version 1.0
  */
 public class GanjiMcQueueApplier extends RowDataApplier
 {
-    private static Logger  logger        = LoggerFactory.getLogger(GanjiMcQueueApplier.class);
+    private static Logger  logger        = Logger.getLogger(GanjiMcQueueApplier.class);
 
     // Task management information.
     private int            taskId;
@@ -73,26 +71,21 @@ public class GanjiMcQueueApplier extends RowDataApplier
     protected Database                conn                 = null;
     protected Statement               statement            = null;
     protected ReplicatorRuntime       runtime              = null;
-
+    
     MemcachedClient 					mc_conn				 = null;
     protected String					queue_addr			 = "";
     protected String					queue_name			 = "noname";
-
-    protected String                   db                   = null;
-
-    public void setDb(String db)
-    {
-        this.db = db;
-    }
-
+     
+    //protected String                   db                   = null;
+    
     public void setQueueAddr(String mcQueueHost) {
-        queue_addr = mcQueueHost;
-    }
+		queue_addr = mcQueueHost;
+	}
 
-    public void setQueueName(String mcQueueName) {
-        queue_name = mcQueueName;
-    }
-
+	public void setQueueName(String mcQueueName) {
+		queue_name = mcQueueName;
+	}
+	
     public Database getDatabase()
     {
         return conn;
@@ -103,25 +96,27 @@ public class GanjiMcQueueApplier extends RowDataApplier
         obj.put( "__schema", schema );
         obj.put( "__table", table );
         obj.put( "__action", actionName );
-
+        
         Future<Boolean> f = mc_conn.set( queue_name, 0, obj.toJSONString() );
         try {
-            Boolean b = f.get();
-            return b.booleanValue();
-        } catch (InterruptedException e) {
-            throw new ApplierException(e);
-        } catch (ExecutionException e) {
-            throw new ApplierException(e);
-        }
+			Boolean b = f.get();
+			return b.booleanValue();
+		} catch (InterruptedException e) {
+			throw new ApplierException(e);
+		} catch (ExecutionException e) {
+			throw new ApplierException(e);
+		}
+        
+		//return false;
     }
 
     /**
      * {@inheritDoc}
-     *
+     * 
      * @see com.continuent.tungsten.replicator.applier.RawApplier#commit()
      */
     @Override
-    public void commit() throws ApplierException, InterruptedException
+    public void commit() throws ReplicatorException, InterruptedException
     {
         // If there's nothing to commit, go back.
         if (this.latestHeader == null )
@@ -152,13 +147,13 @@ public class GanjiMcQueueApplier extends RowDataApplier
         if (commitSeqnoTable == null)
             return;
         if (logger.isDebugEnabled())
-            logger.debug("Updating commit seqno to {}", header.getSeqno());
+            logger.debug("Updating commit seqno to " + header.getSeqno());
         commitSeqnoTable.updateLastCommitSeqno(taskId, header, appliedLatency);
-    }
-
+    }    
+    
     /**
      * {@inheritDoc}
-     *
+     * 
      * @see com.continuent.tungsten.replicator.applier.RawApplier#getLastEvent()
      */
     @Override
@@ -180,7 +175,7 @@ public class GanjiMcQueueApplier extends RowDataApplier
 
     /**
      * {@inheritDoc}
-     *
+     * 
      * @see com.continuent.tungsten.replicator.applier.RawApplier#rollback()
      */
     @Override
@@ -191,7 +186,7 @@ public class GanjiMcQueueApplier extends RowDataApplier
 
     /**
      * {@inheritDoc}
-     *
+     * 
      * @see com.continuent.tungsten.replicator.applier.RawApplier#setTaskId(int)
      */
     @Override
@@ -202,7 +197,7 @@ public class GanjiMcQueueApplier extends RowDataApplier
 
     /**
      * {@inheritDoc}
-     *
+     * 
      * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#configure(com.continuent.tungsten.replicator.plugin.PluginContext)
      */
     @Override
@@ -215,67 +210,72 @@ public class GanjiMcQueueApplier extends RowDataApplier
 
     /**
      * {@inheritDoc}
-     *
+     * 
      * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#prepare(com.continuent.tungsten.replicator.plugin.PluginContext)
      */
     @Override
     public void prepare(PluginContext context) throws ReplicatorException,
             InterruptedException
     {
+        // Connect to MongoDB.
+        if (logger.isDebugEnabled())
+        {
+//            logger.debug("Connecting to Q4M: url="
+//                    + url + ",user=" + user + ",password" + password);
+        }
+
         try
         {
+            
             // Create the database.
             conn = DatabaseFactory.createDatabase(
-                    runtime.getJdbcUrl(db),
-                    runtime.getJdbcUser(),
-                    runtime.getJdbcPassword()
-            );
+            		runtime.getJdbcUrl(context.getReplicatorSchemaName()),
+            		runtime.getJdbcUser(),
+            		runtime.getJdbcPassword()
+            		);
+            		//url, user, password);
             conn.connect(false);
             statement = conn.createStatement();
-
+            
             commitSeqnoTable = new CommitSeqnoTable(conn,
-                    db,
-                    runtime.getTungstenTableType(),
-                    false);
+                    context.getReplicatorSchemaName(),  // 2.0.6
+                    runtime.getTungstenTableType(), false );
             commitSeqnoTable.prepare(taskId);
             latestHeader = commitSeqnoTable.lastCommitSeqno(taskId);
-
+            
         }
         catch (Exception e)
         {
             throw new ReplicatorException(
                     "Unable to connect to MySQL: url="
-                            + runtime.getJdbcUrl(db)
-                            + ",user=" + runtime.getJdbcUser()
-                            + ",password" + runtime.getJdbcPassword(), e);
+                    + runtime.getJdbcUrl(context.getReplicatorSchemaName()) 
+                    + ",user=" + runtime.getJdbcUser() 
+                    + ",password" + runtime.getJdbcPassword(), e);
         }
 
-
+        
         try {
-            SerializingTranscoder transcoder = new SerializingTranscoder();
-            transcoder.setCompressionThreshold(1024*1024); // disable compress
-
-            mc_conn = new MemcachedClient(
-                    new ConnectionFactoryBuilder().
-                        setOpTimeout(30*1000).
-                        setTranscoder(transcoder).
-                        build(),
-                    AddrUtil.getAddresses( queue_addr ));
-
+        	mc_conn = new MemcachedClient(
+        			new ConnectionFactoryBuilder().
+        				//setFailureMode(fm).
+        				setOpTimeout(30*1000).
+        				build(),
+        		    AddrUtil.getAddresses( queue_addr ));
+        	
         }
         catch( Exception e)
         {
             throw new ReplicatorException(
                     "Unable to connect to Memcached: url="
-                            + runtime.getJdbcUrl(db)
-                            + ",user=" + runtime.getJdbcUser()
-                            + ",password" + runtime.getJdbcPassword(), e);
+                    + runtime.getJdbcUrl(context.getReplicatorSchemaName()) 
+                    + ",user=" + runtime.getJdbcUser() 
+                    + ",password" + runtime.getJdbcPassword(), e);        	
         }
     }
 
     /**
      * {@inheritDoc}
-     *
+     * 
      * @see com.continuent.tungsten.replicator.plugin.ReplicatorPlugin#release(com.continuent.tungsten.replicator.plugin.PluginContext)
      */
     @Override
@@ -288,6 +288,8 @@ public class GanjiMcQueueApplier extends RowDataApplier
             commitSeqnoTable = null;
         }
 
+        //currentOptions = null;
+
         statement = null;
         if (conn != null)
         {
@@ -296,17 +298,17 @@ public class GanjiMcQueueApplier extends RowDataApplier
         }
     }
 
-    @Override
-    protected void onRowData(String schema, String table, int aCTIONINSERT, JSONObject doc) throws ApplierException {
-        if( aCTIONINSERT == ACTION_INSERT) {
-            insert2Queue( schema, table, "insert", doc );
-        }
-        else if(aCTIONINSERT == ACTION_UPDATE) {
-            insert2Queue( schema, table, "update", doc );
-        }
-        else if(aCTIONINSERT == ACTION_DELETE) {
-            insert2Queue( schema, table, "delete", doc );
-        }
-
-    }
+	@Override
+	protected void onRowData(String schema, String table, int aCTIONINSERT, JSONObject doc) throws ApplierException {
+		if( aCTIONINSERT == ACTION_INSERT) {
+			insert2Queue( schema, table, "insert", doc );
+		}
+		else if(aCTIONINSERT == ACTION_UPDATE) {
+			insert2Queue( schema, table, "update", doc );
+		}
+		else if(aCTIONINSERT == ACTION_DELETE) {
+			insert2Queue( schema, table, "delete", doc );
+		}
+		
+	}
 }
