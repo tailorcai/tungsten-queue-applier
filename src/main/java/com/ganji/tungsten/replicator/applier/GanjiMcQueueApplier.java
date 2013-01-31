@@ -36,6 +36,8 @@ import net.spy.memcached.AddrUtil;
 import net.spy.memcached.ConnectionFactoryBuilder;
 import net.spy.memcached.DefaultConnectionFactory;
 import net.spy.memcached.MemcachedClient;
+import net.spy.memcached.transcoders.SerializingTranscoder;
+import net.spy.memcached.transcoders.Transcoder;
 
 import org.apache.log4j.Logger;
 import org.json.simple.JSONObject;
@@ -77,7 +79,7 @@ public class GanjiMcQueueApplier extends RowDataApplier
     protected String					queue_addr			 = "";
     protected String					queue_name			 = "noname";
      
-    //protected String                   db                   = null;
+    protected String                   db                   = null;
     
     public void setQueueAddr(String mcQueueHost) {
 		queue_addr = mcQueueHost;
@@ -86,6 +88,9 @@ public class GanjiMcQueueApplier extends RowDataApplier
 	public void setQueueName(String mcQueueName) {
 		queue_name = mcQueueName;
 	}
+    public void setDb(String db) {
+        this.db = db;
+    }
 	
     public Database getDatabase()
     {
@@ -228,10 +233,11 @@ public class GanjiMcQueueApplier extends RowDataApplier
 
         try
         {
-            
+            String schema = db;
+            if( db == null ) db = context.getReplicatorSchemaName();            
             // Create the database.
             conn = DatabaseFactory.createDatabase(
-            		runtime.getJdbcUrl(context.getReplicatorSchemaName()),
+            		runtime.getJdbcUrl(db),
             		runtime.getJdbcUser(),
             		runtime.getJdbcPassword()
             		);
@@ -240,7 +246,7 @@ public class GanjiMcQueueApplier extends RowDataApplier
             statement = conn.createStatement();
             
             commitSeqnoTable = new CommitSeqnoTable(conn,
-                    context.getReplicatorSchemaName(),  // 2.0.6
+                    db,  // 2.0.6
                     runtime.getTungstenTableType(), false );
             commitSeqnoTable.prepare(taskId);
             latestHeader = commitSeqnoTable.lastCommitSeqno(taskId);
@@ -250,7 +256,7 @@ public class GanjiMcQueueApplier extends RowDataApplier
         {
             throw new ReplicatorException(
                     "Unable to connect to MySQL: url="
-                    + runtime.getJdbcUrl(context.getReplicatorSchemaName()) 
+                    + runtime.getJdbcUrl(db) 
                     + ",user=" + runtime.getJdbcUser() 
                     + ",password" + runtime.getJdbcPassword(), e);
         }
@@ -258,7 +264,7 @@ public class GanjiMcQueueApplier extends RowDataApplier
         
         try {
         	mc_conn = new MemcachedClient(
-        			new ConnectionFactoryBuilder().
+        			new ConnectionFactoryBuilder(new FixConnectionFactory() ).
         				//setFailureMode(fm).
         				setOpTimeout(30*1000).
         				build(),
@@ -313,4 +319,11 @@ public class GanjiMcQueueApplier extends RowDataApplier
 		}
 		
 	}
+    class FixConnectionFactory extends DefaultConnectionFactory {
+		 public Transcoder<Object> getDefaultTranscoder() {
+			 SerializingTranscoder obj = new SerializingTranscoder();
+			 obj.setCompressionThreshold(10000000); // set to 1M ,which is impossible
+			 return obj;
+		 }
+    }
 }
