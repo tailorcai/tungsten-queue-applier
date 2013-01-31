@@ -25,6 +25,7 @@ package com.ganji.tungsten.replicator.applier;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
@@ -91,11 +92,12 @@ public class GanjiMcQueueApplier extends RowDataApplier
         return conn;
     }
 
-    private boolean insert2Queue(String schema, String table, String actionName, JSONObject obj ) throws ApplierException
+    private boolean insert2Queue(String schema, String table, String actionName, JSONObject obj, Timestamp tm ) throws ApplierException
     {
         obj.put( "__schema", schema );
         obj.put( "__table", table );
         obj.put( "__action", actionName );
+        obj.put( "__ts", tm.getTime() );
         
         Future<Boolean> f = mc_conn.set( queue_name, 0, obj.toJSONString() );
         try {
@@ -299,15 +301,15 @@ public class GanjiMcQueueApplier extends RowDataApplier
     }
 
 	@Override
-	protected void onRowData(String schema, String table, int aCTIONINSERT, JSONObject doc) throws ApplierException {
+	protected void onRowData(String schema, String table, int aCTIONINSERT, JSONObject doc, Timestamp tm) throws ApplierException {
 		if( aCTIONINSERT == ACTION_INSERT) {
-			insert2Queue( schema, table, "insert", doc );
+			insert2Queue( schema, table, "insert", doc, tm);
 		}
 		else if(aCTIONINSERT == ACTION_UPDATE) {
-			insert2Queue( schema, table, "update", doc );
+			insert2Queue( schema, table, "update", doc, tm );
 		}
 		else if(aCTIONINSERT == ACTION_DELETE) {
-			insert2Queue( schema, table, "delete", doc );
+			insert2Queue( schema, table, "delete", doc, tm );
 		}
 		
 	}

@@ -1,6 +1,7 @@
 package com.ganji.tungsten.replicator.applier;
 
 import java.sql.Types;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -125,7 +126,7 @@ public abstract class RowDataApplier implements RawApplier {
                                 doc.put(name, value);
                             }
                             //insert2Queue( schema, table , "insert", doc );
-                            onRowData(schema, table, ACTION_INSERT, doc);
+                            onRowData(schema, table, ACTION_INSERT, doc, event.getSourceTstamp());
                         }
                            
                     }
@@ -152,7 +153,7 @@ public abstract class RowDataApplier implements RawApplier {
                                 String value = ColValue2String(colSpecs.get(i), colValuesOfRow.get(i));
                                 doc.put(name, value);
                             }
-                            onRowData(schema, table, ACTION_UPDATE, doc);
+                            onRowData(schema, table, ACTION_UPDATE, doc, event.getSourceTstamp());
                         }
                     }
                     else if (action.equals(ActionType.DELETE))
@@ -179,7 +180,7 @@ public abstract class RowDataApplier implements RawApplier {
                                 String value = ColValue2String(keySpecs.get(i), keyValuesOfRow.get(i) );
                                 doc.put(name, value);
                             }
-                            onRowData(schema, table, ACTION_DELETE, doc);
+                            onRowData(schema, table, ACTION_DELETE, doc, event.getSourceTstamp());
                         }
                     }
                     else
@@ -214,7 +215,7 @@ public abstract class RowDataApplier implements RawApplier {
     }
 
 	abstract protected void onRowData(String schema, String table, int aCTIONINSERT,
-			JSONObject doc)throws ApplierException;
+			JSONObject doc, Timestamp tm)throws ApplierException;
 
 
 	@Override
