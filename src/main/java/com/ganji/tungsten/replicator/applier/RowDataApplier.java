@@ -81,25 +81,6 @@ public abstract class RowDataApplier implements RawApplier {
                     ActionType action = orc.getAction();
                     String schema = orc.getSchemaName();
                     String table = orc.getTableName();
-                    
-//                    if( !filterSchemaTable( schema, table ) ) {
-//                        logger.debug("Processing row update: filtered out=" + action
-//                                + " schema=" + schema + " table=" + table);                    	
-//                    	continue;
-//                    }
-//                    if( exc_matcher != null ) {
-//                        exc_matcher.reset( schema + "." + table );
-//                        if( exc_matcher.matches() ) {
-//        				    continue;
-//        				}
-//                    }
-//                    
-//                    if( inc_matcher != null ) {
-//                        inc_matcher.reset( schema + "." + table );
-//                        if( !inc_matcher.matches() ) {
-//                            continue;
-//                        }
-//                    }
 
                     if (logger.isDebugEnabled())
                     {
